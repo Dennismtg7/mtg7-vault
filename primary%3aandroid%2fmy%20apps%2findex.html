@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTG7 GeoEngineer · Secure Repository</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#080c10;--surface:#0d1620;--surface2:#111d2b;
+      --border:rgba(0,200,180,0.18);--accent:#00c8b4;--accent2:#ff6b35;
+      --text:#d4e8e0;--muted:#4a6878;--warn:#ff4f4f;
+      --cat-photo:#7c3aed;--cat-video:#db2777;--cat-pdf:#d97706;--cat-other:#0891b2;
+      --mono:'Space Mono',monospace;--sans:'Syne',sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);pointer-events:none;z-index:9999}
+    body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,180,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,180,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+    /* GATE */
+    .gate{position:relative;z-index:10;width:100%;max-width:440px;animation:fadeUp .6s ease both}
+    .gate-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:48px 40px 40px;position:relative}
+    .gate-card::before,.gate-card::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--accent);border-style:solid}
+    .gate-card::before{top:12px;left:12px;border-width:2px 0 0 2px}
+    .gate-card::after{bottom:12px;right:12px;border-width:0 2px 2px 0}
+    .gate-tag{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+    .gate-tag::before{content:'';width:24px;height:1px;background:var(--accent)}
+    .gate-title{font-size:3rem;font-weight:800;line-height:1;letter-spacing:-1px;color:#fff;margin-bottom:4px}
+    .gate-title em{color:var(--accent);font-style:normal}
+    .gate-sub{font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:36px;border-bottom:1px solid var(--border);padding-bottom:20px}
+    .field-label{font-family:var(--mono);font-size:.65rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px}
+    .field-wrap{position:relative;margin-bottom:24px}
+    .field-wrap input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:14px 18px;font-family:var(--mono);font-size:1rem;color:#fff;outline:none;transition:border-color .2s;letter-spacing:4px}
+    .field-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,200,180,.1)}
+    .field-cursor{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:2px;height:18px;background:var(--accent);animation:blink 1s step-end infinite}
+    .unlock-btn{width:100%;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:.8rem;letter-spacing:4px;text-transform:uppercase;padding:16px;cursor:pointer;position:relative;overflow:hidden;transition:color .25s;border-radius:2px}
+    .unlock-btn::before{content:'';position:absolute;inset:0;background:var(--accent);transform:translateX(-101%);transition:transform .25s ease;z-index:0}
+    .unlock-btn:hover::before{transform:translateX(0)}
+    .unlock-btn:hover{color:var(--bg)}
+    .unlock-btn span{position:relative;z-index:1}
+    .gate-error{margin-top:16px;padding:12px 16px;background:rgba(255,79,79,.08);border:1px solid rgba(255,79,79,.3);border-radius:2px;font-family:var(--mono);font-size:.72rem;color:var(--warn);letter-spacing:2px;text-transform:uppercase;display:none}
+
+    /* VAULT */
+    .vault{position:relative;z-index:10;width:100%;max-width:1200px;animation:fadeUp .5s ease both}
+    .vault-panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:32px}
+    .vault-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+    .vault-ident{display:flex;flex-direction:column;gap:4px}
+    .vault-tag{font-family:var(--mono);font-size:.65rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+    .vault-tag::before{content:'';width:16px;height:1px;background:var(--accent)}
+    .vault-title{font-size:2.4rem;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1}
+    .vault-title em{color:var(--accent);font-style:normal}
+    .status-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .status-pill{font-family:var(--mono);font-size:.6rem;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;border-radius:2px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);display:flex;align-items:center;gap:6px}
+    .status-pill.active{color:var(--accent);border-color:rgba(0,200,180,.3)}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse 2s ease infinite}
+
+    /* upload */
+    .upload-zone{background:var(--surface2);border:1px dashed rgba(0,200,180,.25);border-radius:4px;padding:24px;margin-bottom:28px;transition:border-color .2s}
+    .upload-zone:hover{border-color:rgba(0,200,180,.5)}
+    .upload-zone-label{font-family:var(--mono);font-size:.65rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px}
+    .upload-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .file-pick-label{flex:1 1 auto;background:var(--bg);border:1px solid var(--border);padding:12px 18px;border-radius:2px;font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:1px;cursor:pointer;transition:border-color .2s,color .2s;text-align:center}
+    .file-pick-label:hover{border-color:var(--accent);color:var(--accent)}
+    .file-pick-label input{display:none}
+    .upload-submit{flex:0 1 auto;background:var(--accent);border:none;padding:12px 26px;border-radius:2px;font-family:var(--mono);font-size:.72rem;letter-spacing:3px;text-transform:uppercase;color:var(--bg);font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s}
+    .upload-submit:hover{opacity:.85}
+    .upload-submit:active{transform:scale(.97)}
+    .upload-submit:disabled{opacity:.35;cursor:not-allowed}
+    .upload-hint{font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-top:10px;letter-spacing:1px}
+    .progress-wrap{margin-top:12px;display:none}
+    .progress-bar-bg{background:var(--bg);border:1px solid var(--border);border-radius:2px;height:5px;overflow:hidden}
+    .progress-bar-fill{height:100%;width:0%;background:var(--accent);transition:width .15s ease;box-shadow:0 0 8px var(--accent)}
+    .progress-label{font-family:var(--mono);font-size:.6rem;color:var(--accent);letter-spacing:2px;margin-top:6px}
+
+    /* category tabs */
+    .cat-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+    .cat-tab{font-family:var(--mono);font-size:.62rem;letter-spacing:2px;text-transform:uppercase;padding:7px 14px;border-radius:2px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px}
+    .cat-tab .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .cat-tab[data-cat="all"]    .dot{background:var(--accent)}
+    .cat-tab[data-cat="photos"] .dot{background:var(--cat-photo)}
+    .cat-tab[data-cat="videos"] .dot{background:var(--cat-video)}
+    .cat-tab[data-cat="pdfs"]   .dot{background:var(--cat-pdf)}
+    .cat-tab[data-cat="others"] .dot{background:var(--cat-other)}
+    .cat-tab[data-cat="all"].active   {color:var(--accent);border-color:var(--accent);background:rgba(0,200,180,.06)}
+    .cat-tab[data-cat="photos"].active{color:var(--cat-photo);border-color:var(--cat-photo);background:rgba(124,58,237,.08)}
+    .cat-tab[data-cat="videos"].active{color:var(--cat-video);border-color:var(--cat-video);background:rgba(219,39,119,.08)}
+    .cat-tab[data-cat="pdfs"].active  {color:var(--cat-pdf);border-color:var(--cat-pdf);background:rgba(217,119,6,.08)}
+    .cat-tab[data-cat="others"].active{color:var(--cat-other);border-color:var(--cat-other);background:rgba(8,145,178,.08)}
+    .cat-count{font-size:.58rem;opacity:.7}
+
+    /* section */
+    .section-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .section-head-title{font-size:.65rem;font-family:var(--mono);color:var(--muted);letter-spacing:4px;text-transform:uppercase}
+    .section-count{font-family:var(--mono);font-size:.6rem;color:var(--accent);background:rgba(0,200,180,.08);border:1px solid rgba(0,200,180,.2);padding:2px 10px;border-radius:2px;letter-spacing:2px}
+    .section-line{flex:1;height:1px;background:var(--border)}
+
+    /* grid */
+    .file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+    .file-card{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:16px 14px 12px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;transition:border-color .2s,transform .15s}
+    .file-card:hover{transform:translateY(-2px)}
+    .file-card[data-cat="photos"]:hover{border-color:rgba(124,58,237,.5)}
+    .file-card[data-cat="videos"]:hover{border-color:rgba(219,39,119,.5)}
+    .file-card[data-cat="pdfs"]:hover  {border-color:rgba(217,119,6,.5)}
+    .file-card[data-cat="others"]:hover{border-color:rgba(8,145,178,.5)}
+    .file-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+    .file-card[data-cat="photos"]::before{background:var(--cat-photo)}
+    .file-card[data-cat="videos"]::before{background:var(--cat-video)}
+    .file-card[data-cat="pdfs"]::before  {background:var(--cat-pdf)}
+    .file-card[data-cat="others"]::before{background:var(--cat-other)}
+    .file-ext-badge{font-family:var(--mono);font-size:.58rem;letter-spacing:2px;text-transform:uppercase;padding:2px 8px;border-radius:2px;align-self:flex-start;margin-left:6px}
+    .file-card[data-cat="photos"] .file-ext-badge{color:var(--cat-photo);background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25)}
+    .file-card[data-cat="videos"] .file-ext-badge{color:var(--cat-video);background:rgba(219,39,119,.1);border:1px solid rgba(219,39,119,.25)}
+    .file-card[data-cat="pdfs"]   .file-ext-badge{color:var(--cat-pdf);background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.25)}
+    .file-card[data-cat="others"] .file-ext-badge{color:var(--cat-other);background:rgba(8,145,178,.1);border:1px solid rgba(8,145,178,.25)}
+    .file-thumb{width:100%;height:100px;object-fit:cover;border-radius:3px;border:1px solid var(--border)}
+    .file-icon-row{font-size:2rem;text-align:center;padding:12px 0 4px}
+    .file-name{font-family:var(--mono);font-size:.68rem;color:#fff;word-break:break-all;line-height:1.4;margin-left:6px}
+    .file-size{font-family:var(--mono);font-size:.56rem;color:var(--muted);letter-spacing:1px;margin-left:6px}
+    .btn-row{display:flex;gap:6px;margin-top:auto}
+    .dl-btn,.del-btn{flex:1;display:block;text-align:center;text-decoration:none;font-family:var(--mono);font-size:.56rem;letter-spacing:2px;text-transform:uppercase;padding:8px 4px;border-radius:2px;cursor:pointer;transition:all .2s;border:1px solid var(--border)}
+    .dl-btn{background:transparent;color:var(--muted)}
+    .dl-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,200,180,.06)}
+    .del-btn{background:transparent;border-color:rgba(255,79,79,.2);color:rgba(255,79,79,.45)}
+    .del-btn:hover{border-color:var(--warn);color:var(--warn);background:rgba(255,79,79,.06)}
+
+    /* skeleton */
+    .skeleton{background:linear-gradient(90deg,var(--surface2) 25%,rgba(0,200,180,.04) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px;height:180px;border:1px solid var(--border)}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .empty-state{grid-column:1/-1;text-align:center;padding:50px 20px;border:1px dashed var(--border);border-radius:4px}
+    .empty-icon{font-size:2rem;margin-bottom:12px;opacity:.35}
+    .empty-text{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:3px;text-transform:uppercase}
+    .vault-footer{margin-top:24px;padding-top:18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:2px}
+    .vault-footer::before{content:'//';color:var(--accent)}
+
+    /* toast */
+    .toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:12px 18px;font-family:var(--mono);font-size:.65rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:99999;transform:translateY(80px);opacity:0;transition:transform .3s ease,opacity .3s ease;max-width:300px}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.error{color:var(--warn);border-color:rgba(255,79,79,.3)}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 6px var(--accent)}50%{opacity:.5;box-shadow:0 0 14px var(--accent)}}
+  </style>
+</head>
+<body>
+
+  <!-- GATE -->
+  <div id="gateWrap" class="gate">
+    <div class="gate-card">
+      <div class="gate-tag">secure access</div>
+      <div class="gate-title"><em>MTG7</em></div>
+      <div class="gate-sub">geoengineer / secure vault</div>
+      <div class="field-label">passphrase</div>
+      <div class="field-wrap">
+        <input type="password" id="pwInput" placeholder="enter passphrase" autofocus>
+        <div class="field-cursor"></div>
+      </div>
+      <button class="unlock-btn" id="unlockBtn"><span>&#9654; authenticate &amp; enter</span></button>
+      <div class="gate-error" id="gateError">// access denied — incorrect passphrase</div>
+    </div>
+  </div>
+
+  <!-- VAULT -->
+  <div id="vaultWrap" class="vault" style="display:none;">
+    <div class="vault-panel">
+      <div class="vault-header">
+        <div class="vault-ident">
+          <div class="vault-tag">cloudinary cloud · 25gb free</div>
+          <div class="vault-title"><em>MTG7</em> GEOENGINEER</div>
+        </div>
+        <div class="status-bar">
+          <div class="status-pill active"><div class="status-dot"></div> cloud sync</div>
+          <div class="status-pill" id="fileCounter">loading...</div>
+        </div>
+      </div>
+
+      <!-- upload -->
+      <div class="upload-zone">
+        <div class="upload-zone-label">// upload to cloudinary</div>
+        <div class="upload-row">
+          <label class="file-pick-label" id="pickLabel">
+            + choose files (any type)
+            <input type="file" id="fileInput" multiple>
+          </label>
+          <button class="upload-submit" id="uploadBtn">push &#8594;</button>
+        </div>
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+          <div class="progress-label" id="progressLabel">uploading...</div>
+        </div>
+        <div class="upload-hint">// photos · videos · pdfs · docs — sorted automatically · stored forever</div>
+      </div>
+
+      <!-- category tabs -->
+      <div class="cat-tabs">
+        <div class="cat-tab active" data-cat="all"><span class="dot"></span> all <span class="cat-count" id="cnt-all">0</span></div>
+        <div class="cat-tab" data-cat="photos"><span class="dot"></span> photos <span class="cat-count" id="cnt-photos">0</span></div>
+        <div class="cat-tab" data-cat="videos"><span class="dot"></span> videos <span class="cat-count" id="cnt-videos">0</span></div>
+        <div class="cat-tab" data-cat="pdfs"><span class="dot"></span> pdfs <span class="cat-count" id="cnt-pdfs">0</span></div>
+        <div class="cat-tab" data-cat="others"><span class="dot"></span> others <span class="cat-count" id="cnt-others">0</span></div>
+      </div>
+
+      <div class="section-head">
+        <div class="section-head-title" id="sectionTitle">all files</div>
+        <div class="section-count" id="sectionCount">0</div>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="file-grid" id="fileGrid">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+      </div>
+
+      <div class="vault-footer">cloudinary cloud storage — persistent · 25gb free · no expiry</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Cloudinary config ──
+    const CLOUD_NAME   = 'dft6u1hxt';
+    const UPLOAD_PRESET = 'Mtg7 store';
+    const API_KEY      = '717738367423624';
+
+    // ── Password ──
+    const PASS = 'mtg7geo2025';
+
+    const PHOTO_EXT = ['jpg','jpeg','png','gif','bmp','webp','svg','avif','heic','heif'];
+    const VIDEO_EXT = ['mp4','webm','mov','avi','mkv','m4v','3gp','ogv'];
+    const PDF_EXT   = ['pdf'];
+
+    function getCat(name) {
+      const e = name.split('.').pop().toLowerCase();
+      if (PHOTO_EXT.includes(e)) return 'photos';
+      if (VIDEO_EXT.includes(e)) return 'videos';
+      if (PDF_EXT.includes(e))   return 'pdfs';
+      return 'others';
+    }
+
+    function getResourceType(cat) {
+      if (cat === 'photos') return 'image';
+      if (cat === 'videos') return 'video';
+      return 'raw';
+    }
+
+    function getExt(name) { return (name.split('.').pop() || '?').toLowerCase(); }
+    function getIcon(cat) {
+      if (cat === 'photos') return '&#128247;';
+      if (cat === 'videos') return '&#127916;';
+      if (cat === 'pdfs')   return '&#128209;';
+      return '&#128196;';
+    }
+    function fmtSize(bytes) {
+      if (!bytes) return '—';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+      return (bytes/1048576).toFixed(1) + ' MB';
+    }
+    function truncate(s, n) { return s.length > n ? s.slice(0,n-2)+'…' : s; }
+
+    // ── Toast ──
+    const toastEl = document.getElementById('toast');
+    let toastTimer;
+    function toast(msg, isError=false) {
+      toastEl.textContent = msg;
+      toastEl.className = 'toast show' + (isError ? ' error' : '');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 3500);
+    }
+
+    // ── Auth ──
+    const gateWrap  = document.getElementById('gateWrap');
+    const vaultWrap = document.getElementById('vaultWrap');
+    const pwInput   = document.getElementById('pwInput');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const gateError = document.getElementById('gateError');
+
+    if (sessionStorage.getItem('mtg7_auth') === '1') showVault();
+
+    function showVault() {
+      gateWrap.style.display  = 'none';
+      vaultWrap.style.display = 'block';
+      loadFiles();
+    }
+    function tryUnlock() {
+      if (pwInput.value === PASS) {
+        sessionStorage.setItem('mtg7_auth','1');
+        gateError.style.display = 'none';
+        showVault();
+      } else {
+        gateError.style.display = 'block';
+        pwInput.value = '';
+      }
+    }
+    unlockBtn.addEventListener('click', tryUnlock);
+    pwInput.addEventListener('keydown', e => { if(e.key==='Enter') tryUnlock(); });
+
+    // ── State ──
+    let allFiles = [];
+    let activeFilter = 'all';
+
+    // ── Load files via Cloudinary Search API ──
+    async function loadFiles() {
+      try {
+        // Use localStorage to cache file list (Cloudinary search needs signed requests for full list)
+        // We store uploaded file info locally and sync it
+        const cached = localStorage.getItem('mtg7_files');
+        allFiles = cached ? JSON.parse(cached) : [];
+        updateCounts();
+        renderGrid();
+        document.getElementById('fileGrid').querySelectorAll('.skeleton').forEach(s => s.remove());
+      } catch(err) {
+        console.error(err);
+        allFiles = [];
+        updateCounts();
+        renderGrid();
+      }
+    }
+
+    function saveCache() {
+      localStorage.setItem('mtg7_files', JSON.stringify(allFiles));
+    }
+
+    function updateCounts() {
+      const c = { all: allFiles.length, photos:0, videos:0, pdfs:0, others:0 };
+      allFiles.forEach(f => c[f.cat]++);
+      document.getElementById('cnt-all').textContent    = c.all;
+      document.getElementById('cnt-photos').textContent = c.photos;
+      document.getElementById('cnt-videos').textContent = c.videos;
+      document.getElementById('cnt-pdfs').textContent   = c.pdfs;
+      document.getElementById('cnt-others').textContent = c.others;
+      document.getElementById('fileCounter').textContent = `${c.all} item${c.all!==1?'s':''}`;
+    }
+
+    function renderGrid() {
+      const shown = activeFilter === 'all' ? allFiles : allFiles.filter(f => f.cat === activeFilter);
+      const grid  = document.getElementById('fileGrid');
+      document.getElementById('sectionCount').textContent = shown.length;
+      document.getElementById('sectionTitle').textContent = activeFilter === 'all' ? 'all files' : activeFilter;
+
+      if (shown.length === 0) {
+        grid.innerHTML = `<div class="empty-state"><div class="empty-icon">${getIcon(activeFilter)}</div><div class="empty-text">no ${activeFilter==='all'?'files':activeFilter} yet — upload to populate</div></div>`;
+        return;
+      }
+
+      grid.innerHTML = shown.map((f,i) => {
+        const e = getExt(f.name);
+        const isImg = PHOTO_EXT.includes(e);
+        const isVid = VIDEO_EXT.includes(e);
+        let mediaEl = `<div class="file-icon-row">${getIcon(f.cat)}</div>`;
+        if (isImg) mediaEl = `<img class="file-thumb" src="${f.url}" alt="${f.name}" loading="lazy">`;
+        if (isVid) mediaEl = `<video class="file-thumb" src="${f.url}" muted preload="metadata"></video>`;
+
+        return `<div class="file-card" data-cat="${f.cat}" data-pid="${f.publicId}" data-rtype="${f.resourceType}" style="animation:fadeUp .25s ease ${i*.03}s both">
+          <div class="file-ext-badge">.${e}</div>
+          ${mediaEl}
+          <div class="file-name">${truncate(f.name, 26)}</div>
+          <div class="file-size">${fmtSize(f.size)}</div>
+          <div class="btn-row">
+            <a class="dl-btn" href="${f.url}" target="_blank" download="${f.name}">&#8595; get</a>
+            <button class="del-btn" data-pid="${f.publicId}" data-rtype="${f.resourceType}">&#10005;</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      grid.querySelectorAll('.del-btn').forEach(btn => {
+        btn.addEventListener('click', () => removeFile(btn.dataset.pid, btn.dataset.rtype));
+      });
+    }
+
+    // ── Category tabs ──
+    document.querySelectorAll('.cat-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeFilter = tab.dataset.cat;
+        renderGrid();
+      });
+    });
+
+    // ── Upload ──
+    const fileInput     = document.getElementById('fileInput');
+    const pickLabel     = document.getElementById('pickLabel');
+    const uploadBtn     = document.getElementById('uploadBtn');
+    const progressWrap  = document.getElementById('progressWrap');
+    const progressFill  = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+
+    fileInput.addEventListener('change', () => {
+      const n = fileInput.files.length;
+      pickLabel.childNodes[0].textContent = n > 0 ? `${n} file${n>1?'s':''} selected` : '+ choose files (any type)';
+    });
+
+    uploadBtn.addEventListener('click', async () => {
+      const files = Array.from(fileInput.files);
+      if (!files.length) { toast('// select files first', true); return; }
+
+      uploadBtn.disabled = true;
+      progressWrap.style.display = 'block';
+
+      let done = 0;
+
+      for (const file of files) {
+        const cat          = getCat(file.name);
+        const resourceType = getResourceType(cat);
+        const url          = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', UPLOAD_PRESET);
+        formData.append('folder', `mtg7/${cat}`);
+
+        try {
+          progressLabel.textContent = `[${cat}] ${truncate(file.name,18)}...`;
+
+          const res  = await fetch(url, { method:'POST', body: formData });
+          const data = await res.json();
+
+          if (data.error) throw new Error(data.error.message);
+
+          allFiles.unshift({
+            name:         file.name,
+            url:          data.secure_url,
+            publicId:     data.public_id,
+            resourceType: resourceType,
+            size:         data.bytes,
+            cat:          cat
+          });
+          saveCache();
+
+          done++;
+          const pct = Math.round((done / files.length) * 100);
+          progressFill.style.width = pct + '%';
+          progressLabel.textContent = `uploaded ${done}/${files.length} — ${pct}%`;
+
+        } catch(err) {
+          console.error(err);
+          toast(`// failed: ${truncate(file.name,16)} — ${err.message}`, true);
+        }
+      }
+
+      if (done > 0) toast(`// ${done} file${done>1?'s':''} uploaded to cloudinary`);
+      fileInput.value = '';
+      pickLabel.childNodes[0].textContent = '+ choose files (any type)';
+      uploadBtn.disabled = false;
+      progressWrap.style.display = 'none';
+      progressFill.style.width = '0%';
+      updateCounts();
+      renderGrid();
+    });
+
+    // ── Remove (local cache only — Cloudinary delete needs server-side signed request) ──
+    function removeFile(publicId, resourceType) {
+      if (!confirm('Remove this file from the vault view?\n(File stays on Cloudinary — delete from dashboard for permanent removal)')) return;
+      allFiles = allFiles.filter(f => f.publicId !== publicId);
+      saveCache();
+      updateCounts();
+      renderGrid();
+      toast('// removed from vault view');
+    }
+  </script>
+</body>
+</html>
