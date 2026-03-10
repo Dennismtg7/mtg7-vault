@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTG7 GeoEngineer · Secure Repository</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    // Apply theme before CSS paint to prevent flash
+    (function(){const t=localStorage.getItem('mtg7_theme')||'light';if(t==='dark')document.documentElement.setAttribute('data-theme','dark');})();
+  </script>
+  <style>
+    /* LIGHT MODE (default) */
+    :root {
+      --bg:#f4f7f9;--surface:#ffffff;--surface2:#f0f4f7;
+      --border:rgba(0,160,145,0.18);--accent:#00a896;--accent2:#ff6b35;
+      --text:#1a2e28;--muted:#7a9aa0;--warn:#e03030;
+      --cat-photo:#6d28d9;--cat-video:#be185d;--cat-pdf:#b45309;--cat-other:#0369a1;
+      --mono:'Space Mono',monospace;--sans:'Syne',sans-serif;
+      --ai:#7c3aed;
+      --shadow:rgba(0,0,0,0.08);
+      --grid-line:rgba(0,168,150,0.06);
+      --scan-line:rgba(0,0,0,0.04);
+      --title-color:#0d1f1c;
+    }
+    /* DARK MODE */
+    [data-theme="dark"] {
+      --bg:#080c10;--surface:#0d1620;--surface2:#111d2b;
+      --border:rgba(0,200,180,0.18);--accent:#00c8b4;--accent2:#ff6b35;
+      --text:#d4e8e0;--muted:#4a6878;--warn:#ff4f4f;
+      --cat-photo:#7c3aed;--cat-video:#db2777;--cat-pdf:#d97706;--cat-other:#0891b2;
+      --ai:#a78bfa;
+      --shadow:rgba(0,0,0,0.4);
+      --grid-line:rgba(0,200,180,0.03);
+      --scan-line:rgba(0,0,0,0.15);
+      --title-color:#ffffff;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    *{transition:background-color .25s,border-color .25s,color .15s,box-shadow .2s}
+    body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,var(--scan-line) 2px,var(--scan-line) 4px);pointer-events:none;z-index:9999}
+    body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+    /* GATE */
+    .gate{position:relative;z-index:10;width:100%;max-width:440px;animation:fadeUp .6s ease both}
+    .gate-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:48px 40px 40px;position:relative;box-shadow:0 4px 24px var(--shadow)}
+    .gate-card::before,.gate-card::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--accent);border-style:solid}
+    .gate-card::before{top:12px;left:12px;border-width:2px 0 0 2px}
+    .gate-card::after{bottom:12px;right:12px;border-width:0 2px 2px 0}
+    .gate-tag{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+    .gate-tag::before{content:'';width:24px;height:1px;background:var(--accent)}
+    .gate-title{font-size:3rem;font-weight:800;line-height:1;letter-spacing:-1px;color:var(--title-color);margin-bottom:4px}
+    .gate-title em{color:var(--accent);font-style:normal}
+    .gate-sub{font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:36px;border-bottom:1px solid var(--border);padding-bottom:20px}
+    .field-label{font-family:var(--mono);font-size:.65rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px}
+    .field-wrap{position:relative;margin-bottom:24px}
+    .field-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:2px;padding:14px 18px;font-family:var(--mono);font-size:1rem;color:var(--text);outline:none;transition:border-color .2s;letter-spacing:4px}
+    .field-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,200,180,.1)}
+    .field-cursor{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:2px;height:18px;background:var(--accent);animation:blink 1s step-end infinite}
+    .unlock-btn{width:100%;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:.8rem;letter-spacing:4px;text-transform:uppercase;padding:16px;cursor:pointer;position:relative;overflow:hidden;transition:color .25s;border-radius:2px}
+    .unlock-btn::before{content:'';position:absolute;inset:0;background:var(--accent);transform:translateX(-101%);transition:transform .25s ease;z-index:0}
+    .unlock-btn:hover::before{transform:translateX(0)}
+    .unlock-btn:hover{color:var(--bg)}
+    .unlock-btn span{position:relative;z-index:1}
+    .gate-error{margin-top:16px;padding:12px 16px;background:rgba(255,79,79,.08);border:1px solid rgba(255,79,79,.3);border-radius:2px;font-family:var(--mono);font-size:.72rem;color:var(--warn);letter-spacing:2px;text-transform:uppercase;display:none}
+
+    /* VAULT */
+    .vault{position:relative;z-index:10;width:100%;max-width:1280px;animation:fadeUp .5s ease both}
+    .vault-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+    .vault-ident{display:flex;flex-direction:column;gap:4px}
+    .vault-tag{font-family:var(--mono);font-size:.65rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+    .vault-tag::before{content:'';width:16px;height:1px;background:var(--accent)}
+    .vault-title{font-size:2.4rem;font-weight:800;color:var(--title-color);letter-spacing:-1px;line-height:1}
+    .vault-panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:32px;box-shadow:0 4px 32px var(--shadow)}
+    .vault-title em{color:var(--accent);font-style:normal}
+    .status-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .status-pill{font-family:var(--mono);font-size:.6rem;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;border-radius:2px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);display:flex;align-items:center;gap:6px}
+    .status-pill.active{color:var(--accent);border-color:rgba(0,200,180,.3)}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse 2s ease infinite}
+    .logout-btn{font-family:var(--mono);font-size:.6rem;letter-spacing:2px;text-transform:uppercase;padding:6px 14px;border-radius:2px;border:1px solid rgba(255,79,79,.25);background:transparent;color:rgba(255,79,79,.5);cursor:pointer;transition:all .2s}
+    .logout-btn:hover{border-color:var(--warn);color:var(--warn);background:rgba(255,79,79,.06)}
+
+    /* upload */
+    .upload-zone{background:var(--surface2);border:1px dashed rgba(0,200,180,.25);border-radius:4px;padding:24px;margin-bottom:20px;transition:border-color .2s,background .2s}
+    .upload-zone.drag-over{border-color:var(--accent);background:rgba(0,200,180,.04)}
+    .upload-zone-label{font-family:var(--mono);font-size:.65rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px}
+    .upload-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .file-pick-label{flex:1 1 auto;background:var(--surface);border:1px solid var(--border);padding:12px 18px;border-radius:2px;font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:1px;cursor:pointer;transition:border-color .2s,color .2s;text-align:center}
+    .file-pick-label:hover{border-color:var(--accent);color:var(--accent)}
+    .file-pick-label input{display:none}
+    .upload-submit{flex:0 1 auto;background:var(--accent);border:none;padding:12px 26px;border-radius:2px;font-family:var(--mono);font-size:.72rem;letter-spacing:3px;text-transform:uppercase;color:var(--bg);font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s}
+    .upload-submit:hover{opacity:.85}
+    .upload-submit:active{transform:scale(.97)}
+    .upload-submit:disabled{opacity:.35;cursor:not-allowed}
+    .upload-hint{font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-top:10px;letter-spacing:1px}
+    .progress-wrap{margin-top:12px;display:none}
+    .progress-bar-bg{background:var(--surface);border:1px solid var(--border);border-radius:2px;height:5px;overflow:hidden}
+    .progress-bar-fill{height:100%;width:0%;background:var(--accent);transition:width .15s ease;box-shadow:0 0 8px var(--accent)}
+    .progress-label{font-family:var(--mono);font-size:.6rem;color:var(--accent);letter-spacing:2px;margin-top:6px}
+
+    /* search */
+    .search-wrap{position:relative;margin-bottom:20px}
+    .search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:2px;padding:11px 40px 11px 38px;font-family:var(--mono);font-size:.75rem;color:#fff;outline:none;transition:border-color .2s;letter-spacing:.5px}
+    .search-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,200,180,.07)}
+    .search-input::placeholder{color:var(--muted)}
+    .search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:1rem;pointer-events:none;line-height:1}
+    .search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:4px 8px;display:none;line-height:1}
+    .search-clear:hover{color:var(--accent)}
+
+    /* category tabs */
+    .cat-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+    .cat-tab{font-family:var(--mono);font-size:.62rem;letter-spacing:2px;text-transform:uppercase;padding:7px 14px;border-radius:2px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px}
+    .cat-tab .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .cat-tab[data-cat="all"]    .dot{background:var(--accent)}
+    .cat-tab[data-cat="photos"] .dot{background:var(--cat-photo)}
+    .cat-tab[data-cat="videos"] .dot{background:var(--cat-video)}
+    .cat-tab[data-cat="pdfs"]   .dot{background:var(--cat-pdf)}
+    .cat-tab[data-cat="others"] .dot{background:var(--cat-other)}
+    .cat-tab[data-cat="all"].active   {color:var(--accent);border-color:var(--accent);background:rgba(0,200,180,.06)}
+    .cat-tab[data-cat="photos"].active{color:var(--cat-photo);border-color:var(--cat-photo);background:rgba(124,58,237,.08)}
+    .cat-tab[data-cat="videos"].active{color:var(--cat-video);border-color:var(--cat-video);background:rgba(219,39,119,.08)}
+    .cat-tab[data-cat="pdfs"].active  {color:var(--cat-pdf);border-color:var(--cat-pdf);background:rgba(217,119,6,.08)}
+    .cat-tab[data-cat="others"].active{color:var(--cat-other);border-color:var(--cat-other);background:rgba(8,145,178,.08)}
+    .cat-count{font-size:.58rem;opacity:.7}
+
+    /* section */
+    .section-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .section-head-title{font-size:.65rem;font-family:var(--mono);color:var(--muted);letter-spacing:4px;text-transform:uppercase}
+    .section-count{font-family:var(--mono);font-size:.6rem;color:var(--accent);background:rgba(0,200,180,.08);border:1px solid rgba(0,200,180,.2);padding:2px 10px;border-radius:2px;letter-spacing:2px}
+    .section-line{flex:1;height:1px;background:var(--border)}
+
+    /* grid */
+    .file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px}
+    .file-card{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:16px 14px 12px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;transition:border-color .2s,transform .15s,box-shadow .2s;cursor:pointer}
+    .file-card:hover{transform:translateY(-3px)}
+    .file-card[data-cat="photos"]:hover{border-color:rgba(124,58,237,.55);box-shadow:0 8px 24px rgba(124,58,237,.1)}
+    .file-card[data-cat="videos"]:hover{border-color:rgba(219,39,119,.55);box-shadow:0 8px 24px rgba(219,39,119,.1)}
+    .file-card[data-cat="pdfs"]:hover  {border-color:rgba(217,119,6,.55);box-shadow:0 8px 24px rgba(217,119,6,.1)}
+    .file-card[data-cat="others"]:hover{border-color:rgba(8,145,178,.55);box-shadow:0 8px 24px rgba(8,145,178,.1)}
+    .file-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+    .file-card[data-cat="photos"]::before{background:var(--cat-photo)}
+    .file-card[data-cat="videos"]::before{background:var(--cat-video)}
+    .file-card[data-cat="pdfs"]::before  {background:var(--cat-pdf)}
+    .file-card[data-cat="others"]::before{background:var(--cat-other)}
+    .file-ext-badge{font-family:var(--mono);font-size:.58rem;letter-spacing:2px;text-transform:uppercase;padding:2px 8px;border-radius:2px;align-self:flex-start;margin-left:6px}
+    .file-card[data-cat="photos"] .file-ext-badge{color:var(--cat-photo);background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25)}
+    .file-card[data-cat="videos"] .file-ext-badge{color:var(--cat-video);background:rgba(219,39,119,.1);border:1px solid rgba(219,39,119,.25)}
+    .file-card[data-cat="pdfs"]   .file-ext-badge{color:var(--cat-pdf);background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.25)}
+    .file-card[data-cat="others"] .file-ext-badge{color:var(--cat-other);background:rgba(8,145,178,.1);border:1px solid rgba(8,145,178,.25)}
+    .media-wrap{position:relative;border-radius:3px;overflow:hidden}
+    .file-thumb{width:100%;height:108px;object-fit:cover;border-radius:3px;border:1px solid var(--border);display:block}
+    .file-icon-row{font-size:2rem;text-align:center;padding:12px 0 4px}
+    .view-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);opacity:0;transition:opacity .2s;font-family:var(--mono);font-size:.6rem;color:#fff;letter-spacing:2px;text-transform:uppercase;gap:5px}
+    .file-card:hover .view-overlay{opacity:1}
+    .icon-only-wrap{position:relative}
+    .file-name{font-family:var(--mono);font-size:.68rem;color:var(--text);word-break:break-all;line-height:1.4;margin-left:6px}
+    /* Theme toggle */
+    .theme-toggle{font-family:var(--mono);font-size:.6rem;letter-spacing:2px;text-transform:uppercase;padding:6px 13px;border-radius:2px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+    .theme-toggle .t-icon{font-size:.85rem;line-height:1}
+    .file-size{font-family:var(--mono);font-size:.56rem;color:var(--muted);letter-spacing:1px;margin-left:6px}
+    .btn-row{display:flex;gap:6px;margin-top:auto}
+    .dl-btn,.del-btn{flex:1;display:block;text-align:center;text-decoration:none;font-family:var(--mono);font-size:.56rem;letter-spacing:2px;text-transform:uppercase;padding:8px 4px;border-radius:2px;cursor:pointer;transition:all .2s;border:1px solid var(--border)}
+    .dl-btn{background:transparent;color:var(--muted)}
+    .dl-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,200,180,.06)}
+    .del-btn{background:transparent;border-color:rgba(255,79,79,.2);color:rgba(255,79,79,.45)}
+    .del-btn:hover{border-color:var(--warn);color:var(--warn);background:rgba(255,79,79,.06)}
+
+    /* skeleton */
+    .skeleton{background:linear-gradient(90deg,var(--surface2) 25%,rgba(0,200,180,.04) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px;height:200px;border:1px solid var(--border)}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .empty-state{grid-column:1/-1;text-align:center;padding:60px 20px;border:1px dashed var(--border);border-radius:4px}
+    .empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.3}
+    .empty-text{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:3px;text-transform:uppercase}
+    .vault-footer{margin-top:24px;padding-top:18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:2px}
+    .vault-footer::before{content:'//';color:var(--accent)}
+
+    /* toast */
+    .toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:12px 18px;font-family:var(--mono);font-size:.65rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:99999;transform:translateY(80px);opacity:0;transition:transform .3s ease,opacity .3s ease;max-width:300px}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.error{color:var(--warn);border-color:rgba(255,79,79,.3)}
+
+    /* FILE VIEWER MODAL */
+    .viewer-overlay{position:fixed;inset:0;background:rgba(4,8,14,.92);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s ease;backdrop-filter:blur(6px)}
+    .viewer-overlay.open{opacity:1;pointer-events:all}
+    .viewer-modal{background:var(--surface);border:1px solid var(--border);border-radius:6px;width:100%;max-width:920px;max-height:92vh;display:flex;flex-direction:column;position:relative;transform:scale(.96) translateY(12px);transition:transform .28s cubic-bezier(.22,.68,0,1.2);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+    .viewer-overlay.open .viewer-modal{transform:scale(1) translateY(0)}
+    .viewer-modal::before,.viewer-modal::after{content:'';position:absolute;width:14px;height:14px;border-color:var(--accent);border-style:solid;z-index:1;pointer-events:none}
+    .viewer-modal::before{top:8px;left:8px;border-width:2px 0 0 2px}
+    .viewer-modal::after{bottom:8px;right:8px;border-width:0 2px 2px 0}
+    .viewer-header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+    .viewer-title{font-family:var(--mono);font-size:.72rem;color:var(--text);word-break:break-all;flex:1;letter-spacing:.5px}
+    .viewer-meta{font-family:var(--mono);font-size:.58rem;color:var(--muted);letter-spacing:1px;flex-shrink:0;white-space:nowrap}
+    .viewer-close{background:none;border:1px solid rgba(255,79,79,.25);color:rgba(255,79,79,.55);font-family:var(--mono);font-size:.6rem;letter-spacing:2px;padding:6px 12px;border-radius:2px;cursor:pointer;transition:all .15s;flex-shrink:0}
+    .viewer-close:hover{border-color:var(--warn);color:var(--warn);background:rgba(255,79,79,.06)}
+    .viewer-body{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px;min-height:180px}
+    .viewer-body img{max-width:100%;max-height:66vh;object-fit:contain;border-radius:3px;animation:fadeUp .25s ease}
+    .viewer-body video{max-width:100%;max-height:66vh;border-radius:3px;outline:none;animation:fadeUp .25s ease}
+    .viewer-body iframe{width:100%;height:66vh;border:none;border-radius:3px;background:#fff}
+    .viewer-body audio{width:100%;max-width:420px}
+    .viewer-unsupported{text-align:center;padding:50px 20px}
+    .viewer-unsupported .big-icon{font-size:4rem;margin-bottom:16px;opacity:.35}
+    .viewer-unsupported p{font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:20px}
+    .viewer-dl-btn{display:inline-block;background:var(--accent);color:var(--bg);font-family:var(--mono);font-size:.7rem;letter-spacing:3px;text-transform:uppercase;padding:12px 28px;border-radius:2px;text-decoration:none;font-weight:700;transition:opacity .15s}
+    .viewer-dl-btn:hover{opacity:.85}
+    .viewer-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:space-between;align-items:center;flex-shrink:0}
+    .viewer-nav-group{display:flex;gap:8px}
+    .viewer-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:.6rem;letter-spacing:2px;padding:7px 16px;border-radius:2px;cursor:pointer;transition:all .15s}
+    .viewer-nav-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+    .viewer-nav-btn:disabled{opacity:.25;cursor:not-allowed}
+    .viewer-progress{font-family:var(--mono);font-size:.58rem;color:var(--muted);letter-spacing:2px}
+    .viewer-spinner{width:34px;height:34px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* AI PANEL */
+    .ai-panel{background:var(--surface2);border:1px solid rgba(167,139,250,.18);border-radius:4px;margin-top:28px;transition:border-color .2s}
+    .ai-panel:focus-within{border-color:rgba(167,139,250,.4)}
+    .ai-header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid rgba(167,139,250,.12);cursor:pointer;user-select:none}
+    .ai-header-icon{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,rgba(167,139,250,.25),rgba(99,102,241,.25));border:1px solid rgba(167,139,250,.3);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
+    .ai-header-title{font-family:var(--mono);font-size:.68rem;color:var(--ai);letter-spacing:3px;text-transform:uppercase;flex:1}
+    .ai-header-status{font-family:var(--mono);font-size:.56rem;color:rgba(167,139,250,.45);letter-spacing:2px}
+    .ai-toggle-icon{font-family:var(--mono);font-size:.7rem;color:rgba(167,139,250,.4);transition:transform .25s}
+    .ai-panel.collapsed .ai-toggle-icon{transform:rotate(-90deg)}
+    .ai-body{padding:0 18px 18px}
+    .ai-panel.collapsed .ai-body{display:none}
+    .ai-messages{min-height:60px;max-height:320px;overflow-y:auto;padding:14px 0 10px;display:flex;flex-direction:column;gap:10px}
+    .ai-messages::-webkit-scrollbar{width:3px}
+    .ai-messages::-webkit-scrollbar-thumb{background:rgba(167,139,250,.18);border-radius:2px}
+    .ai-msg{display:flex;gap:9px;animation:fadeUp .2s ease both}
+    .ai-msg.user{flex-direction:row-reverse}
+    .ai-avatar{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65rem;margin-top:2px}
+    .ai-msg.user .ai-avatar{background:rgba(0,200,180,.12);border:1px solid rgba(0,200,180,.22);color:var(--accent)}
+    .ai-msg.ai   .ai-avatar{background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.22);color:var(--ai)}
+    .ai-bubble{max-width:80%;padding:9px 13px;font-family:var(--mono);font-size:.69rem;line-height:1.7;letter-spacing:.2px}
+    .ai-msg.user .ai-bubble{background:rgba(0,200,180,.07);border:1px solid rgba(0,200,180,.16);color:var(--text);border-radius:3px 3px 0 3px}
+    .ai-msg.ai   .ai-bubble{background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.16);color:#c4b5fd;border-radius:3px 3px 3px 0}
+    .ai-typing{display:flex;align-items:center;gap:4px;padding:9px 13px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.16);border-radius:3px 3px 3px 0;width:fit-content}
+    .ai-typing span{width:5px;height:5px;border-radius:50%;background:var(--ai);opacity:.35;animation:typingDot 1.2s ease infinite}
+    .ai-typing span:nth-child(2){animation-delay:.18s}
+    .ai-typing span:nth-child(3){animation-delay:.36s}
+    @keyframes typingDot{0%,60%,100%{opacity:.35;transform:scale(1)}30%{opacity:1;transform:scale(1.3)}}
+    .ai-suggestions{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 10px}
+    .ai-suggest-btn{font-family:var(--mono);font-size:.57rem;letter-spacing:1px;padding:5px 10px;border-radius:2px;border:1px solid rgba(167,139,250,.18);background:transparent;color:rgba(167,139,250,.55);cursor:pointer;transition:all .15s}
+    .ai-suggest-btn:hover{border-color:var(--ai);color:var(--ai);background:rgba(167,139,250,.06)}
+    .ai-input-row{display:flex;gap:8px}
+    .ai-input{flex:1;background:var(--surface);border:1px solid rgba(167,139,250,.18);border-radius:2px;padding:10px 13px;font-family:var(--mono);font-size:.7rem;color:var(--text);outline:none;transition:border-color .2s;letter-spacing:.3px}
+    .ai-input:focus{border-color:rgba(167,139,250,.45);box-shadow:0 0 0 2px rgba(167,139,250,.05)}
+    .ai-input::placeholder{color:rgba(167,139,250,.28)}
+    .ai-send-btn{background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.28);color:var(--ai);font-family:var(--mono);font-size:.65rem;letter-spacing:2px;padding:10px 16px;border-radius:2px;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .ai-send-btn:hover{background:rgba(167,139,250,.22);border-color:var(--ai)}
+    .ai-send-btn:disabled{opacity:.3;cursor:not-allowed}
+    .ai-clear-btn{background:transparent;border:1px solid rgba(255,79,79,.14);color:rgba(255,79,79,.38);font-family:var(--mono);font-size:.58rem;letter-spacing:2px;padding:6px 10px;border-radius:2px;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .ai-clear-btn:hover{border-color:rgba(255,79,79,.4);color:rgba(255,79,79,.7)}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 6px var(--accent)}50%{opacity:.5;box-shadow:0 0 14px var(--accent)}}
+
+    @media(max-width:600px){
+      .vault-panel{padding:18px 14px}
+      .file-grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr))}
+      .viewer-body img,.viewer-body video{max-height:55vh}
+      .viewer-body iframe{height:55vh}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- GATE -->
+  <div id="gateWrap" class="gate">
+    <div class="gate-card">
+      <div class="gate-tag">secure access</div>
+      <div class="gate-title"><em>MTG7</em></div>
+      <div class="gate-sub">geoengineer / secure vault</div>
+      <div class="field-label">passphrase</div>
+      <div class="field-wrap">
+        <input type="password" id="pwInput" placeholder="enter passphrase" autofocus>
+        <div class="field-cursor"></div>
+      </div>
+      <button class="unlock-btn" id="unlockBtn"><span>&#9654; authenticate &amp; enter</span></button>
+      <div class="gate-error" id="gateError">// access denied — incorrect passphrase</div>
+    </div>
+  </div>
+
+  <!-- VAULT -->
+  <div id="vaultWrap" class="vault" style="display:none;">
+    <div class="vault-panel">
+      <div class="vault-header">
+        <div class="vault-ident">
+          <div class="vault-tag">cloudinary cloud · 25gb free</div>
+          <div class="vault-title"><em>MTG7</em> GEOENGINEER</div>
+        </div>
+        <div class="status-bar">
+          <div class="status-pill active"><div class="status-dot"></div> cloud sync</div>
+          <div class="status-pill" id="fileCounter">loading...</div>
+          <div class="status-pill" id="syncStatus"><div class="status-dot" id="syncDot" style="background:#60a5fa;box-shadow:0 0 6px #60a5fa"></div><span id="syncLabel">syncing...</span></div>
+          <button class="theme-toggle" id="syncNowBtn" title="Re-sync from Cloudinary">⟳ sync</button>
+          <button class="theme-toggle" id="themeToggle"><span class="t-icon">☀️</span> light</button>
+          <button class="logout-btn" id="logoutBtn">&#9665; exit</button>
+        </div>
+      </div>
+
+      <!-- upload -->
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-zone-label">// upload to cloudinary</div>
+        <div class="upload-row">
+          <label class="file-pick-label" id="pickLabel">
+            + choose files (any type)
+            <input type="file" id="fileInput" multiple>
+          </label>
+          <button class="upload-submit" id="uploadBtn">push &#8594;</button>
+        </div>
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+          <div class="progress-label" id="progressLabel">uploading...</div>
+        </div>
+        <div class="upload-hint">// photos · videos · pdfs · docs — drag &amp; drop supported · sorted automatically · stored forever</div>
+      </div>
+
+      <!-- search -->
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" class="search-input" id="searchInput" placeholder="search by name, type, or category...">
+        <button class="search-clear" id="searchClear">✕</button>
+      </div>
+
+      <!-- category tabs -->
+      <div class="cat-tabs">
+        <div class="cat-tab active" data-cat="all"><span class="dot"></span> all <span class="cat-count" id="cnt-all">0</span></div>
+        <div class="cat-tab" data-cat="photos"><span class="dot"></span> photos <span class="cat-count" id="cnt-photos">0</span></div>
+        <div class="cat-tab" data-cat="videos"><span class="dot"></span> videos <span class="cat-count" id="cnt-videos">0</span></div>
+        <div class="cat-tab" data-cat="pdfs"><span class="dot"></span> pdfs <span class="cat-count" id="cnt-pdfs">0</span></div>
+        <div class="cat-tab" data-cat="others"><span class="dot"></span> others <span class="cat-count" id="cnt-others">0</span></div>
+      </div>
+
+      <div class="section-head">
+        <div class="section-head-title" id="sectionTitle">all files</div>
+        <div class="section-count" id="sectionCount">0</div>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="file-grid" id="fileGrid">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+      </div>
+
+      <!-- AI ASSISTANT -->
+      <div class="ai-panel" id="aiPanel">
+        <div class="ai-header" id="aiHeader">
+          <div class="ai-header-icon">✦</div>
+          <div class="ai-header-title">vault AI</div>
+          <div class="ai-header-status" id="aiStatus">ready</div>
+          <div class="ai-toggle-icon" id="aiToggleIcon">▾</div>
+        </div>
+        <div class="ai-body">
+          <div class="ai-messages" id="aiMessages">
+            <div class="ai-msg ai">
+              <div class="ai-avatar">✦</div>
+              <div class="ai-bubble">Hello! I'm your vault AI assistant. I can answer questions about your files, help with geospatial engineering topics, or assist with anything else you need.</div>
+            </div>
+          </div>
+          <div class="ai-suggestions" id="aiSuggestions">
+            <button class="ai-suggest-btn">How many files do I have?</button>
+            <button class="ai-suggest-btn">What file types are supported?</button>
+            <button class="ai-suggest-btn">Explain coordinate systems</button>
+            <button class="ai-suggest-btn">What is remote sensing?</button>
+          </div>
+          <div class="ai-input-row">
+            <input class="ai-input" id="aiInput" type="text" placeholder="ask anything...">
+            <button class="ai-send-btn" id="aiSendBtn">send ▸</button>
+            <button class="ai-clear-btn" id="aiClearBtn">clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="vault-footer">cloudinary cloud storage — synced across all devices · 25gb free · click any file to preview</div>
+    </div>
+  </div>
+
+  <!-- FILE VIEWER MODAL -->
+  <div class="viewer-overlay" id="viewerOverlay">
+    <div class="viewer-modal">
+      <div class="viewer-header">
+        <div class="viewer-title" id="viewerTitle">—</div>
+        <div class="viewer-meta" id="viewerMeta"></div>
+        <button class="viewer-close" id="viewerClose">✕ close</button>
+      </div>
+      <div class="viewer-body" id="viewerBody">
+        <div class="viewer-spinner"></div>
+      </div>
+      <div class="viewer-footer">
+        <div class="viewer-nav-group">
+          <button class="viewer-nav-btn" id="viewerPrev">&#8592; prev</button>
+          <button class="viewer-nav-btn" id="viewerNext">next &#8594;</button>
+        </div>
+        <div class="viewer-progress" id="viewerProgress"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Theme Toggle ──
+    const themeToggle = document.getElementById('themeToggle');
+    const savedTheme = localStorage.getItem('mtg7_theme') || 'light';
+    function applyTheme(t) {
+      if (t === 'dark') {
+        document.documentElement.setAttribute('data-theme','dark');
+        themeToggle.innerHTML = '<span class="t-icon">🌙</span> dark';
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggle.innerHTML = '<span class="t-icon">☀️</span> light';
+      }
+      localStorage.setItem('mtg7_theme', t);
+    }
+    applyTheme(savedTheme);
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+
+    // ── Config ──
+    const CLOUD_NAME    = 'dft6u1hxt';
+    const UPLOAD_PRESET = 'Mtg7 store';
+    const API_KEY       = '717738367423624';
+    const PASS          = 'mtg7geo2025';
+
+    const PHOTO_EXT = ['jpg','jpeg','png','gif','bmp','webp','svg','avif','heic','heif'];
+    const VIDEO_EXT = ['mp4','webm','mov','avi','mkv','m4v','3gp','ogv'];
+    const PDF_EXT   = ['pdf'];
+    const AUDIO_EXT = ['mp3','wav','ogg','m4a','flac','aac'];
+
+    function getCat(name){const e=name.split('.').pop().toLowerCase();if(PHOTO_EXT.includes(e))return 'photos';if(VIDEO_EXT.includes(e))return 'videos';if(PDF_EXT.includes(e))return 'pdfs';return 'others';}
+    function getResourceType(cat){if(cat==='photos')return 'image';if(cat==='videos')return 'video';return 'raw';}
+    function getExt(name){return(name.split('.').pop()||'?').toLowerCase();}
+    function getIcon(cat){if(cat==='photos')return '📷';if(cat==='videos')return '🎬';if(cat==='pdfs')return '📄';return '📁';}
+    function fmtSize(b){if(!b)return '—';if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+    function truncate(s,n){return s.length>n?s.slice(0,n-2)+'…':s;}
+    function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+    // ── Toast ──
+    const toastEl=document.getElementById('toast');let toastTimer;
+    function toast(msg,isErr=false){toastEl.textContent=msg;toastEl.className='toast show'+(isErr?' error':'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toastEl.className='toast';},3500);}
+
+    // ── Auth ──
+    const gateWrap=document.getElementById('gateWrap');
+    const vaultWrap=document.getElementById('vaultWrap');
+    const pwInput=document.getElementById('pwInput');
+    const gateError=document.getElementById('gateError');
+
+    if(sessionStorage.getItem('mtg7_auth')==='1')showVault();
+
+    function showVault(){gateWrap.style.display='none';vaultWrap.style.display='block';loadFiles();}
+    function tryUnlock(){
+      if(pwInput.value===PASS){sessionStorage.setItem('mtg7_auth','1');gateError.style.display='none';showVault();}
+      else{gateError.style.display='block';pwInput.value='';pwInput.focus();}
+    }
+    document.getElementById('unlockBtn').addEventListener('click',tryUnlock);
+    pwInput.addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
+    document.getElementById('logoutBtn').addEventListener('click',()=>{
+      sessionStorage.removeItem('mtg7_auth');
+      vaultWrap.style.display='none';
+      gateWrap.style.display='flex';
+      setTimeout(()=>pwInput.focus(),80);
+    });
+    document.getElementById('syncNowBtn').addEventListener('click',()=>{
+      setSyncState('syncing','syncing...');
+      loadFiles();
+    });
+
+    // ── State ──
+    let allFiles=[];let activeFilter='all';let searchQuery='';let currentViewIdx=-1;
+
+    // ── Cloudinary Sync ──
+    // Uses Cloudinary Search API (unsigned, no API secret needed for listing)
+    // Files are fetched fresh from Cloudinary on every login — fully cross-device
+    const SYNC_PILL = document.getElementById('syncStatus');
+
+    function setSyncState(state, text) {
+      // state: 'syncing' | 'ok' | 'error' | 'cached'
+      const dot = document.getElementById('syncDot');
+      const label = document.getElementById('syncLabel');
+      if(label) label.textContent = text;
+      if(dot){
+        dot.style.background = state==='ok'?'var(--accent)': state==='error'?'var(--warn)': state==='cached'?'#f59e0b':'#60a5fa';
+        dot.style.boxShadow  = state==='ok'?'0 0 6px var(--accent)': state==='error'?'0 0 6px var(--warn)': state==='cached'?'0 0 6px #f59e0b':'0 0 6px #60a5fa';
+      }
+    }
+
+    // ── Cloudinary Sync (multi-strategy, no API secret needed) ──
+
+    function cloudinaryToFile(r) {
+      const fullName = r.filename || r.original_filename || r.public_id.split('/').pop();
+      const ext = (r.format || fullName.split('.').pop() || '').toLowerCase();
+      const name = fullName.includes('.') ? fullName : (ext ? `${fullName}.${ext}` : fullName);
+      const cat  = getCat(name);
+      let url    = r.secure_url || '';
+      if (cat === 'others' && ext && !url.endsWith('.' + ext)) url += '.' + ext;
+      return {
+        name, url,
+        publicId:     r.public_id,
+        resourceType: r.resource_type || 'image',
+        size:         r.bytes || 0,
+        cat,
+        createdAt:    r.created_at || ''
+      };
+    }
+
+    // Strategy 1: fetch by tag (works if files are tagged "mtg7vault")
+    async function fetchByTag(tag, resourceType) {
+      const out = [];
+      let cursor = null;
+      do {
+        let u = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/${resourceType}/tags/${encodeURIComponent(tag)}?max_results=500`;
+        if (cursor) u += `&next_cursor=${encodeURIComponent(cursor)}`;
+        const res = await fetch(u);
+        if (!res.ok) break;
+        const data = await res.json();
+        (data.resources || []).forEach(r => out.push({...r, resource_type: resourceType}));
+        cursor = data.next_cursor || null;
+      } while (cursor);
+      return out;
+    }
+
+    // Strategy 2: fetch by folder prefix using API key basic auth (read-only)
+    async function fetchByFolder(resourceType) {
+      const out = [];
+      let cursor = null;
+      do {
+        let u = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/${resourceType}?prefix=mtg7&max_results=500&type=upload`;
+        if (cursor) u += `&next_cursor=${encodeURIComponent(cursor)}`;
+        const res = await fetch(u, {
+          headers: { 'Authorization': 'Basic ' + btoa(API_KEY + ':') }
+        });
+        if (!res.ok) break;
+        const data = await res.json();
+        (data.resources || []).forEach(r => out.push({...r, resource_type: resourceType}));
+        cursor = data.next_cursor || null;
+      } while (cursor);
+      return out;
+    }
+
+    async function fetchAllFromCloudinary() {
+      const types = ['image', 'video', 'raw'];
+      let raw = [];
+
+      // Try tag-based fetch first (no auth needed)
+      try {
+        const tagResults = await Promise.all(types.map(t => fetchByTag('mtg7vault', t)));
+        tagResults.forEach(arr => arr.forEach(r => raw.push(r)));
+      } catch(e) { raw = []; }
+
+      // If tag fetch returned nothing, fall back to folder listing with API key
+      if (raw.length === 0) {
+        try {
+          const folderResults = await Promise.all(types.map(t => fetchByFolder(t)));
+          folderResults.forEach(arr => arr.forEach(r => raw.push(r)));
+        } catch(e) {}
+      }
+
+      // Deduplicate by public_id
+      const seen = new Set();
+      const unique = raw.filter(r => {
+        if (seen.has(r.public_id)) return false;
+        seen.add(r.public_id); return true;
+      });
+
+      const results = unique.map(cloudinaryToFile);
+      results.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      return results;
+    }
+
+    async function loadFiles() {
+      // Show cache instantly while fetching live data
+      try {
+        const cached = localStorage.getItem('mtg7_files');
+        if (cached) {
+          allFiles = JSON.parse(cached);
+          updateCounts(); renderGrid();
+          document.querySelectorAll('#fileGrid .skeleton').forEach(s => s.remove());
+          setSyncState('cached', 'syncing...');
+        }
+      } catch(e) { allFiles = []; }
+
+      setSyncState('syncing', 'syncing...');
+      try {
+        const fresh = await fetchAllFromCloudinary();
+        allFiles = fresh;
+        saveCache();
+        updateCounts(); renderGrid();
+        document.querySelectorAll('#fileGrid .skeleton').forEach(s => s.remove());
+        setSyncState('ok', `synced · ${allFiles.length} file${allFiles.length !== 1 ? 's' : ''}`);
+        toast(`// synced ${allFiles.length} file${allFiles.length !== 1 ? 's' : ''} from cloudinary`);
+      } catch(err) {
+        console.error('Sync failed:', err);
+        setSyncState('error', 'sync failed — using cache');
+        toast('// cloud sync failed — showing cached files', true);
+        document.querySelectorAll('#fileGrid .skeleton').forEach(s => s.remove());
+        if (!allFiles.length) { updateCounts(); renderGrid(); }
+      }
+    }
+
+    function saveCache() { localStorage.setItem('mtg7_files', JSON.stringify(allFiles)); }
+
+    function getFiltered(){
+      let list=activeFilter==='all'?allFiles:allFiles.filter(f=>f.cat===activeFilter);
+      if(searchQuery){const q=searchQuery.toLowerCase();list=list.filter(f=>f.name.toLowerCase().includes(q)||getExt(f.name).includes(q)||f.cat.includes(q));}
+      return list;
+    }
+
+    function updateCounts(){
+      const c={all:allFiles.length,photos:0,videos:0,pdfs:0,others:0};
+      allFiles.forEach(f=>c[f.cat]++);
+      ['all','photos','videos','pdfs','others'].forEach(k=>document.getElementById('cnt-'+k).textContent=c[k]);
+      document.getElementById('fileCounter').textContent=`${c.all} item${c.all!==1?'s':''}`;
+    }
+
+    function renderGrid(){
+      const shown=getFiltered();
+      const grid=document.getElementById('fileGrid');
+      document.getElementById('sectionCount').textContent=shown.length;
+      const label=searchQuery?`"${searchQuery}"`:activeFilter==='all'?'all files':activeFilter;
+      document.getElementById('sectionTitle').textContent=label;
+
+      if(shown.length===0){
+        grid.innerHTML=`<div class="empty-state"><div class="empty-icon">${getIcon(activeFilter)}</div><div class="empty-text">${searchQuery?'no files match your search':'no '+(activeFilter==='all'?'files':activeFilter)+' yet — upload to populate'}</div></div>`;
+        return;
+      }
+
+      grid.innerHTML=shown.map((f,i)=>{
+        const e=getExt(f.name);
+        const isImg=PHOTO_EXT.includes(e);
+        const isVid=VIDEO_EXT.includes(e);
+        let mediaEl;
+        if(isImg){
+          mediaEl=`<div class="media-wrap"><img class="file-thumb" src="${f.url}" alt="${f.name}" loading="lazy"><div class="view-overlay">🔍 view</div></div>`;
+        } else if(isVid){
+          mediaEl=`<div class="media-wrap"><video class="file-thumb" src="${f.url}" muted preload="metadata"></video><div class="view-overlay">▶ play</div></div>`;
+        } else {
+          mediaEl=`<div class="icon-only-wrap"><div class="file-icon-row">${getIcon(f.cat)}</div><div class="view-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);opacity:0;transition:opacity .2s;font-family:var(--mono);font-size:.58rem;color:#fff;letter-spacing:2px;text-transform:uppercase;border-radius:3px">open</div></div>`;
+        }
+        return `<div class="file-card" data-cat="${f.cat}" data-idx="${i}" style="animation:fadeUp .25s ease ${i*.03}s both">
+          <div class="file-ext-badge">.${e}</div>
+          ${mediaEl}
+          <div class="file-name">${truncate(f.name,26)}</div>
+          <div class="file-size">${fmtSize(f.size)}</div>
+          <div class="btn-row">
+            <a class="dl-btn" href="${f.url}" target="_blank" download="${f.name}" onclick="event.stopPropagation()">&#8595; get</a>
+            <button class="del-btn" onclick="event.stopPropagation();removeFile('${f.publicId.replace(/'/g,"\\'")}','${f.resourceType}')">&#10005;</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      grid.querySelectorAll('.file-card').forEach(card=>{
+        card.addEventListener('click',()=>openViewer(parseInt(card.dataset.idx)));
+      });
+      // fix icon-only hover overlay
+      grid.querySelectorAll('.icon-only-wrap').forEach(w=>{
+        const ov=w.querySelector('.view-overlay');
+        w.closest('.file-card').addEventListener('mouseenter',()=>{if(ov)ov.style.opacity='1';});
+        w.closest('.file-card').addEventListener('mouseleave',()=>{if(ov)ov.style.opacity='0';});
+      });
+    }
+
+    // ── Tabs ──
+    document.querySelectorAll('.cat-tab').forEach(tab=>{
+      tab.addEventListener('click',()=>{
+        document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+        tab.classList.add('active');activeFilter=tab.dataset.cat;renderGrid();
+      });
+    });
+
+    // ── Search ──
+    const searchInput=document.getElementById('searchInput');
+    const searchClear=document.getElementById('searchClear');
+    searchInput.addEventListener('input',()=>{
+      searchQuery=searchInput.value.trim();
+      searchClear.style.display=searchQuery?'block':'none';
+      renderGrid();
+    });
+    searchClear.addEventListener('click',()=>{searchInput.value='';searchQuery='';searchClear.style.display='none';renderGrid();searchInput.focus();});
+
+    // ── Drag & Drop ──
+    const uploadZone=document.getElementById('uploadZone');
+    uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag-over');});
+    uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop',e=>{
+      e.preventDefault();uploadZone.classList.remove('drag-over');
+      if(e.dataTransfer.files.length){
+        document.getElementById('fileInput').files=e.dataTransfer.files;
+        const n=e.dataTransfer.files.length;
+        document.getElementById('pickLabel').childNodes[0].textContent=`${n} file${n>1?'s':''} selected`;
+      }
+    });
+
+    // ── Upload ──
+    const fileInput=document.getElementById('fileInput');
+    const pickLabel=document.getElementById('pickLabel');
+    const uploadBtn=document.getElementById('uploadBtn');
+    const progressWrap=document.getElementById('progressWrap');
+    const progressFill=document.getElementById('progressFill');
+    const progressLabel=document.getElementById('progressLabel');
+
+    fileInput.addEventListener('change',()=>{const n=fileInput.files.length;pickLabel.childNodes[0].textContent=n>0?`${n} file${n>1?'s':''} selected`:'+ choose files (any type)';});
+
+    uploadBtn.addEventListener('click',async()=>{
+      const files=Array.from(fileInput.files);
+      if(!files.length){toast('// select files first',true);return;}
+      uploadBtn.disabled=true;progressWrap.style.display='block';let done=0;
+      for(const file of files){
+        const cat=getCat(file.name);
+        const resourceType=getResourceType(cat);
+        const url=`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
+        const fd=new FormData();
+        fd.append('file',file);
+        fd.append('upload_preset',UPLOAD_PRESET);
+        fd.append('folder',`mtg7/${cat}`);
+        fd.append('tags','mtg7vault');  // ← tag enables cross-device sync
+        try{
+          progressLabel.textContent=`[${cat}] ${truncate(file.name,18)}...`;
+          const res=await fetch(url,{method:'POST',body:fd});const data=await res.json();
+          if(data.error)throw new Error(data.error.message);
+          allFiles.unshift({name:file.name,url:data.secure_url,publicId:data.public_id,resourceType,size:data.bytes,cat});
+          saveCache();done++;
+          const pct=Math.round((done/files.length)*100);
+          progressFill.style.width=pct+'%';progressLabel.textContent=`uploaded ${done}/${files.length} — ${pct}%`;
+        }catch(err){console.error(err);toast(`// failed: ${truncate(file.name,16)} — ${err.message}`,true);}
+      }
+      if(done>0){
+        toast(`// ${done} file${done>1?'s':''} uploaded — syncing...`);
+        fileInput.value='';pickLabel.childNodes[0].textContent='+ choose files (any type)';
+        uploadBtn.disabled=false;progressWrap.style.display='none';progressFill.style.width='0%';
+        // Re-fetch from Cloudinary so new files appear on all devices
+        setTimeout(()=>loadFiles(), 1200);
+      } else {
+        fileInput.value='';pickLabel.childNodes[0].textContent='+ choose files (any type)';
+        uploadBtn.disabled=false;progressWrap.style.display='none';progressFill.style.width='0%';
+        updateCounts();renderGrid();
+      }
+    });
+
+    // ── Remove ──
+    function removeFile(publicId,resourceType){
+      if(!confirm('Remove this file from vault?\n\nNote: This only removes it from your local view.\nTo permanently delete, go to your Cloudinary dashboard.'))return;
+      allFiles=allFiles.filter(f=>f.publicId!==publicId);
+      saveCache();updateCounts();renderGrid();
+      toast('// removed from vault view');
+    }
+
+    // ── FILE VIEWER ──
+    const viewerOverlay=document.getElementById('viewerOverlay');
+    const viewerBody=document.getElementById('viewerBody');
+    const viewerTitle=document.getElementById('viewerTitle');
+    const viewerMeta=document.getElementById('viewerMeta');
+    const viewerProgress=document.getElementById('viewerProgress');
+
+    function openViewer(idx){
+      const shown=getFiltered();if(!shown[idx])return;
+      currentViewIdx=idx;viewerOverlay.classList.add('open');document.body.style.overflow='hidden';
+      renderViewerFile(shown[idx],idx,shown.length);
+    }
+
+    function renderViewerFile(f,idx,total){
+      viewerTitle.textContent=f.name;
+      viewerMeta.textContent=fmtSize(f.size);
+      viewerProgress.textContent=`${idx+1} / ${total}`;
+      document.getElementById('viewerPrev').disabled=idx===0;
+      document.getElementById('viewerNext').disabled=idx===total-1;
+      viewerBody.innerHTML='<div class="viewer-spinner"></div>';
+      const e=getExt(f.name);
+      setTimeout(()=>{
+        if(PHOTO_EXT.includes(e)){
+          viewerBody.innerHTML=`<img src="${f.url}" alt="${f.name}">`;
+        } else if(VIDEO_EXT.includes(e)){
+          viewerBody.innerHTML=`<video src="${f.url}" controls autoplay preload="auto"></video>`;
+        } else if(PDF_EXT.includes(e)){
+          viewerBody.innerHTML=`<iframe src="${f.url}" title="${f.name}"></iframe>`;
+        } else if(AUDIO_EXT.includes(e)){
+          viewerBody.innerHTML=`<div style="text-align:center;padding:30px 10px"><div style="font-size:3.5rem;margin-bottom:18px">🎵</div><audio src="${f.url}" controls style="width:100%;max-width:400px"></audio></div>`;
+        } else {
+          viewerBody.innerHTML=`<div class="viewer-unsupported"><div class="big-icon">${getIcon(f.cat)}</div><p>// no preview for .${e} files</p><a class="viewer-dl-btn" href="${f.url}" target="_blank" download="${f.name}">&#8595; download file</a></div>`;
+        }
+      },100);
+    }
+
+    function closeViewer(){viewerOverlay.classList.remove('open');document.body.style.overflow='';setTimeout(()=>{viewerBody.innerHTML='';},300);}
+
+    document.getElementById('viewerClose').addEventListener('click',closeViewer);
+    viewerOverlay.addEventListener('click',e=>{if(e.target===viewerOverlay)closeViewer();});
+    document.getElementById('viewerPrev').addEventListener('click',()=>{if(currentViewIdx>0){currentViewIdx--;const s=getFiltered();renderViewerFile(s[currentViewIdx],currentViewIdx,s.length);}});
+    document.getElementById('viewerNext').addEventListener('click',()=>{const s=getFiltered();if(currentViewIdx<s.length-1){currentViewIdx++;renderViewerFile(s[currentViewIdx],currentViewIdx,s.length);}});
+    document.addEventListener('keydown',e=>{
+      if(!viewerOverlay.classList.contains('open'))return;
+      if(e.key==='Escape')closeViewer();
+      if(e.key==='ArrowLeft')document.getElementById('viewerPrev').click();
+      if(e.key==='ArrowRight')document.getElementById('viewerNext').click();
+    });
+
+    // ── AI ASSISTANT ──
+    const aiPanel=document.getElementById('aiPanel');
+    const aiMessages=document.getElementById('aiMessages');
+    const aiInput=document.getElementById('aiInput');
+    const aiSendBtn=document.getElementById('aiSendBtn');
+    const aiStatus=document.getElementById('aiStatus');
+    let aiHistory=[];
+
+    document.getElementById('aiHeader').addEventListener('click',()=>{
+      aiPanel.classList.toggle('collapsed');
+      document.getElementById('aiToggleIcon').textContent=aiPanel.classList.contains('collapsed')?'▸':'▾';
+    });
+
+    document.querySelectorAll('.ai-suggest-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{aiInput.value=btn.textContent;sendAI();});
+    });
+    aiSendBtn.addEventListener('click',sendAI);
+    aiInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey)sendAI();});
+    document.getElementById('aiClearBtn').addEventListener('click',()=>{
+      aiHistory=[];
+      aiMessages.innerHTML=`<div class="ai-msg ai"><div class="ai-avatar">✦</div><div class="ai-bubble">Chat cleared. How can I help you?</div></div>`;
+      document.getElementById('aiSuggestions').style.display='flex';
+    });
+
+    function getVaultCtx(){
+      const c={photos:0,videos:0,pdfs:0,others:0};allFiles.forEach(f=>c[f.cat]++);
+      const list=allFiles.slice(0,20).map(f=>`- ${f.name} (${f.cat}, ${fmtSize(f.size)})`).join('\n');
+      return `You are an AI assistant embedded in MTG7 GeoEngineer Secure Vault — a personal cloud file storage system for a geospatial and civil engineering professional at JKUAT, Kenya. The vault syncs files live from Cloudinary so the file list is always up to date across all devices.
+Vault: ${allFiles.length} total files — ${c.photos} photos, ${c.videos} videos, ${c.pdfs} PDFs, ${c.others} others.
+${allFiles.length>0?'Files:\n'+list:'Vault is empty.'}
+Be concise, practical, and technically knowledgeable about GIS, geodesy, surveying, IoT, and engineering. Keep responses focused and brief.`;
+    }
+
+    async function sendAI(){
+      const msg=aiInput.value.trim();if(!msg)return;
+      aiInput.value='';
+      document.getElementById('aiSuggestions').style.display='none';
+      aiSendBtn.disabled=true;aiStatus.textContent='thinking...';
+      appendMsg('user',msg);
+      aiHistory.push({role:'user',content:msg});
+
+      const typId='t'+Date.now();
+      aiMessages.insertAdjacentHTML('beforeend',`<div class="ai-msg ai" id="${typId}"><div class="ai-avatar">✦</div><div class="ai-typing"><span></span><span></span><span></span></div></div>`);
+      aiMessages.scrollTop=aiMessages.scrollHeight;
+
+      try{
+        const res=await fetch('https://api.anthropic.com/v1/messages',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:getVaultCtx(),messages:aiHistory})
+        });
+        const data=await res.json();
+        document.getElementById(typId)?.remove();
+        if(data.error)throw new Error(data.error.message);
+        const reply=data.content.map(b=>b.text||'').join('');
+        aiHistory.push({role:'assistant',content:reply});
+        appendMsg('ai',reply);
+        aiStatus.textContent='ready';
+      }catch(err){
+        document.getElementById(typId)?.remove();
+        appendMsg('ai','// error: '+err.message);
+        aiStatus.textContent='error';setTimeout(()=>{aiStatus.textContent='ready';},3000);
+      }
+      aiSendBtn.disabled=false;aiMessages.scrollTop=aiMessages.scrollHeight;
+    }
+
+    function appendMsg(role,text){
+      const av=role==='user'?'⬡':'✦';
+      const el=document.createElement('div');
+      el.className=`ai-msg ${role}`;
+      el.innerHTML=`<div class="ai-avatar">${av}</div><div class="ai-bubble">${escHtml(text).replace(/\n/g,'<br>')}</div>`;
+      aiMessages.appendChild(el);
+      aiMessages.scrollTop=aiMessages.scrollHeight;
+    }
+  </script>
+</body>
+</html>
+
